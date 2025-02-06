@@ -1,0 +1,13 @@
+[configuration]
+entry_symbol = "swift_entry_point"
+compatibility_minimum = 4.2
+
+
+[libraries]
+ios.debug = "res://bin/Yandex-iOS-ADS-Godot.framework"
+ios.arm64 = "res://bin/Yandex-iOS-ADS-Godot.framework"
+
+[dependencies]
+ios.debug = {"res://bin/SwiftGodot.framework" : ""}
+ios.arm64 = {"res://bin/SwiftGodot.framework" : ""}
+
