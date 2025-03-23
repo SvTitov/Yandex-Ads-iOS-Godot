@@ -11,8 +11,8 @@ A native plugin bridging Godot Engine with Yandex's advertising platform, provid
 2. Run the following terminal commands:
 ```
 chmod +x build.sh
-/.build.sh ios debug   - for debug version
-/.build.sh ios release - for release version
+./build.sh ios debug   - for debug version
+./build.sh ios release - for release version
 ```
 3. Navigate to your Godot project and create a `bin` folder.
 4. Copy `YandexiOSADSGodot.gdextension` from the root folder and `SwiftGodot.framework`,`Yandex-iOS-ADS-Godot.framework` (skip `YandexMobileAds.framework`) form Bin -> ios to the `bin` folder in Godot project
@@ -36,35 +36,99 @@ Open your Godot project and create a new script file. Use the following sample c
 ```gdscript
 extends Node2D
 
-class_name iOS_Ads
+class_name YandexAdsiOS
 
-const CLASS_NAME = "YandexAds"
+const CLASS_NAME = "YandexAdsiOSGodot"
 
-var _my_library: Variant = null
+var native_lib: Variant = null
 
-func _init():
-    if _my_library == null && ClassDB.class_exists(CLASS_NAME):
-        _my_library = ClassDB.instantiate (CLASS_NAME)
-        _my_library.connect("on_reward", _on_reward) 
+signal rewarded(amount: int, type: String)
+signal rewarded_video_loaded
+signal rewarded_video_failed_to_load(error: String)
+signal rewarded_video_closed
+
+signal interstitial_loaded
+signal interstitial_failed_to_load(error: String)
+signal interstitial_closed
+
+signal banner_loaded
+signal banner_failed_to_load(error: String)
+
+var rewarded_id: String:
+    get:
+        if _if_lib_exists(): return native_lib.rewarded_id
+        return ""
+    set(_value):
+        if _if_lib_exists(): native_lib.rewarded_id = _value
+
+var banner_id: String:
+    get:
+        if _if_lib_exists(): return native_lib.banner_id
+        return ""
+    set(_value):
+        if _if_lib_exists(): native_lib.banner_id = _value
+
+var interstitial_id: String:
+    get: 
+        if _if_lib_exists(): return native_lib.interstitial_id
+        return ""
+    set(_value):
+        if _if_lib_exists(): native_lib.interstitial_id = _value
+
+func _subscribe_rewarded() -> void:
+    native_lib.connect("rewarded", _on_rewarded) 
+    native_lib.connect("rewarded_video_loaded", func(): rewarded_video_loaded.emit())
+    native_lib.connect("rewarded_video_failed_to_load", func(x: String): rewarded_video_failed_to_load.emit(x))
+    native_lib.connect("rewarded_video_closed", func(): rewarded_video_closed.emit())
+
+func _subsctibe_interstitial() -> void:
+    native_lib.connect("interstitial_loaded", func(): interstitial_loaded.emit())
+    native_lib.connect("interstitial_failed_to_load", func(x: String): interstitial_failed_to_load.emit(x))
+    native_lib.connect("interstitial_closed", func(): interstitial_closed.emit())
+
+func _subscribe_banner() -> void:
+    native_lib.connect("banner_loaded", func(): banner_loaded.emit())
+    native_lib.connect("banner_failed_to_load", func(x: String): banner_failed_to_load.emit(x))
 
 func initialize () -> void:
-    if _my_library != null:
-        _my_library.initializeSDK()
+    if native_lib == null && ClassDB.class_exists(CLASS_NAME):
+        native_lib = ClassDB.instantiate(CLASS_NAME)
+        native_lib.initializeSDK()
 
-func show_sticky_banner(_ad_unit_id: String) -> void:
-    if _my_library != null:
-        _my_library.showStickyBanner(_ad_unit_id)
+        _subscribe_rewarded()
+        _subsctibe_interstitial()
+        _subscribe_banner()
 
-func show_interstitial_ad(_ad_unit_id: String) -> void:
-    if _my_library != null:
-        _my_library.showInterstitialAd(_ad_unit_id)
+### Banners
+func load_banner() -> void:
+    if _if_lib_exists(): native_lib.loadStickyBanner()
 
-func show_rewarded_ad(_ad_unit_id: String) -> void:
-    if _my_library != null:
-        _my_library.showRewardedAd(_ad_unit_id)
+func show_banner() -> void:
+    if _if_lib_exists(): native_lib.showStickyBanner()
 
-func _on_reward(_amount: int, _type: String) -> void:
-    print_debug("Amount: ", _amount, " Type: ", _type)
+func hide_banner() -> void:
+    if _if_lib_exists(): native_lib.hideStickyBanner()
+
+### Interstitial
+func load_interstitial() -> void:
+    if _if_lib_exists(): native_lib.loadInterstitialAd()
+
+func show_interstitial() -> void:
+    if _if_lib_exists(): native_lib.showInterstitialAd()
+
+### Rewarded
+
+func load_rewarded_video() -> void:
+    if _if_lib_exists(): native_lib.loadRewardedAd()
+
+func show_rewarded_video() -> void:
+    if _if_lib_exists(): native_lib.showRewardedAd()
+
+func _if_lib_exists() -> bool:
+    return native_lib != null 
+
+func _on_rewarded(_type: String, _amount: int) -> void:
+    rewarded.emit(_amount, _type)
 ```
 
 ---

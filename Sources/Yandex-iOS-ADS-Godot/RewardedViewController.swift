@@ -3,9 +3,11 @@ import UIKit
 import YandexMobileAds
 
 class RewardedViewController: UIViewController {
-    typealias Callback = (Int, String) -> Void
-
-    private var callback: Callback?
+    private var rewardedAd: RewardedAd?
+    private var rewardedCallback: ((Int, String) -> Void)?
+    private var videoLoadedCallback : (() -> Void)?
+    private var failLoadCallback : ((String) -> Void)?
+    private var closeCallback : (() -> Void)?
     
     private lazy var rewardedAdLoader: RewardedAdLoader = {
         let loader = RewardedAdLoader()
@@ -19,24 +21,31 @@ class RewardedViewController: UIViewController {
         self.adUnitID = adUnitID
     }
     
-    func setRewardCallback(_ callback: @escaping Callback) {
-        self.callback = callback
+    func setRewardCallback(_ callback: @escaping (Int, String) -> Void) {
+        self.rewardedCallback = callback
     }
     
-    private var rewardedAd: RewardedAd?
+    func setVideoLoaded(_ callback: @escaping () -> Void) {
+        self.videoLoadedCallback = callback
+    }
+    
+    func setFailLoad(_ callback: @escaping (String) -> Void) {
+        self.failLoadCallback = callback
+    }
+    
+    func setCloseCallback(_ callback: @escaping () -> Void) {
+        self.closeCallback = callback
+    }
     
     func loadAd() {
-          let configuration = AdRequestConfiguration(adUnitID: adUnitID)
-          rewardedAdLoader.loadAd(with: configuration)
+        let configuration = AdRequestConfiguration(adUnitID: adUnitID)
+        rewardedAdLoader.loadAd(with: configuration)
     }
     
     func showAd() {
-       rewardedAd?.show(from: self)
-    }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        loadAd()
+        DispatchQueue.main.async {
+            self.rewardedAd?.show(from: self)
+        }
     }
 }
 
@@ -44,27 +53,30 @@ extension RewardedViewController: RewardedAdLoaderDelegate {
     func rewardedAdLoader(_ adLoader: RewardedAdLoader, didLoad rewardedAd: RewardedAd) {
         print(">>> YandexMobileAds \(#function)")
         
+        self.videoLoadedCallback?()
+        
         self.rewardedAd = rewardedAd
         self.rewardedAd?.delegate = self
-
-        showAd()
     }
 
     func rewardedAdLoader(_ adLoader: RewardedAdLoader, didFailToLoadWithError error: AdRequestError) {
         print(">>> YandexMobileAds \(#function)")
+        self.failLoadCallback?(error.error.localizedDescription)
     }
 }
 
 extension RewardedViewController: RewardedAdDelegate {
     func rewardedAd(_ rewardedAd: YandexMobileAds.RewardedAd, didReward reward: any YandexMobileAds.Reward) {
         print(">>> YandexMobileAds \(#function)")
-        callback?(reward.amount, reward.type)
+        rewardedCallback?(reward.amount, reward.type)
     }
     
     func rewardedAd(_ rewardedAd: RewardedAd, didFailToShowWithError error: any Error) {
         print(">>> YandexMobileAds \(#function)")
         print(">>> YandexMobileAds error: \(error)")
-        self.dismiss(animated: false)
+        DispatchQueue.main.async {
+            self.dismiss(animated: false)
+        }
     }
     
     func rewardedAdDidShow(_ rewardedAd: RewardedAd) {
@@ -81,6 +93,9 @@ extension RewardedViewController: RewardedAdDelegate {
     
     func rewardedAdDidDismiss(_ rewardedAd: RewardedAd) {
         print(">>> YandexMobileAds \(#function)")
-        self.dismiss(animated: false)
+        DispatchQueue.main.async {
+            self.dismiss(animated: false)
+            self.closeCallback?()
+        }
     }
 }

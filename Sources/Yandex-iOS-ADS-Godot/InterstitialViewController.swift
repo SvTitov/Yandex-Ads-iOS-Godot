@@ -2,6 +2,11 @@ import Foundation
 import YandexMobileAds
 
 class InterstitialViewController: UIViewController {
+    
+    var loaded_callback : (() -> Void)? = nil
+    var fail_callback   : ((String) -> Void)? = nil
+    var close_callback  : (() -> Void)? = nil
+    
     private lazy var interstitialAdLoader: InterstitialAdLoader = {
         let loader = InterstitialAdLoader()
         loader.delegate = self
@@ -21,12 +26,21 @@ class InterstitialViewController: UIViewController {
     }
     
     func showAd() {
-        interstitialAd?.show(from: self)
+        DispatchQueue.main.async {
+            self.interstitialAd?.show(from: self)
+        }
     }
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        loadAd()
+    func setLoadedCallback(_ callback: @escaping () -> Void) {
+        self.loaded_callback = callback
+    }
+    
+    func setFailCallback(_ callback: @escaping (String) -> Void) {
+        self.fail_callback = callback
+    }
+    
+    func setCloseCallback(_ callback: @escaping () -> Void) {
+        self.close_callback = callback
     }
 }
 
@@ -34,14 +48,15 @@ extension InterstitialViewController: InterstitialAdLoaderDelegate {
     func interstitialAdLoader(_ adLoader: InterstitialAdLoader, didLoad interstitialAd: InterstitialAd) {
         print(">>> YandexMobileAds \(#function)")
         
+        self.loaded_callback?()
+        
         self.interstitialAd = interstitialAd
         self.interstitialAd?.delegate = self
-        
-        showAd()
     }
 
     func interstitialAdLoader(_ adLoader: InterstitialAdLoader, didFailToLoadWithError error: AdRequestError) {
         print(">>> YandexMobileAds \(#function)")
+        self.fail_callback?(error.error.localizedDescription)
     }
 }
 
@@ -57,7 +72,9 @@ extension InterstitialViewController: InterstitialAdDelegate {
     func interstitialAd(_ interstitialAd: InterstitialAd, didFailToShowWithError error: any Error) {
         print(">>> YandexMobileAds \(#function)")
         print(">>> YandexMobileAds error: \(error)")
-        self.dismiss(animated: false)
+        DispatchQueue.main.async {
+            self.dismiss(animated: false)
+        }
     }
     
     func interstitialAd(_ interstitialAd: InterstitialAd, didTrackImpressionWith impressionData: (any ImpressionData)?) {
@@ -66,6 +83,9 @@ extension InterstitialViewController: InterstitialAdDelegate {
     
     func interstitialAdDidDismiss(_ interstitialAd: InterstitialAd) {
         print(">>> YandexMobileAds \(#function)")
-        self.dismiss(animated: false)
+        DispatchQueue.main.async {
+            self.dismiss(animated: false)
+            self.close_callback?()
+        }
     }
 }

@@ -5,6 +5,9 @@ final class StickyBannerViewController: UIViewController {
     
     var adView: AdView?
     
+    var loaded_callback     : (() -> Void)? = nil
+    var fail_callback       : ((String) -> Void)? = nil
+    
     func loadAd(_ adUnitID: String) {
         adView = createAdView(adUnitID)
         adView?.loadAd()
@@ -33,15 +36,35 @@ final class StickyBannerViewController: UIViewController {
             adView.centerXAnchor.constraint(equalTo: viewController.view.centerXAnchor)
         ])
     }
+    
+    func hideAd(viewController: UIViewController) {
+        guard let adView = adView else {
+            print(">>> YandexMobileAds \(#function) no adView initialized")
+            return
+        }
+        
+        adView.willMove(toSuperview: nil)
+        adView.removeFromSuperview()
+    }
+    
+    func setLoadedCallback(_ callback: @escaping () -> Void) {
+        self.loaded_callback = callback
+    }
+    
+    func setFailCallback(_ callback: @escaping (String) -> Void){
+        self.fail_callback = callback
+    }
 }
 
 extension StickyBannerViewController: AdViewDelegate {
     func adViewDidLoad(_ adView: AdView) {
         print(">>> YandexMobileAds \(#function)")
+        self.loaded_callback?()
     }
     
     func adViewDidFailLoading(_ adView: AdView, error: any Error) {
         print(">>> YandexMobileAds \(#function)")
+        self.fail_callback?(error.localizedDescription)
     }
     
     func adViewDidClick(_ adView: AdView) {
