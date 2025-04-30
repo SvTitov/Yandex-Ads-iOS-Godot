@@ -73,6 +73,7 @@ extension InterstitialViewController: InterstitialAdDelegate {
         print(">>> YandexMobileAds \(#function)")
         print(">>> YandexMobileAds error: \(error)")
         DispatchQueue.main.async {
+            self.fail_callback?(error.localizedDescription)
             self.dismiss(animated: false)
         }
     }
@@ -84,8 +85,8 @@ extension InterstitialViewController: InterstitialAdDelegate {
     func interstitialAdDidDismiss(_ interstitialAd: InterstitialAd) {
         print(">>> YandexMobileAds \(#function)")
         DispatchQueue.main.async {
-            self.dismiss(animated: false)
             self.close_callback?()
+            self.dismiss(animated: false)
         }
     }
 }

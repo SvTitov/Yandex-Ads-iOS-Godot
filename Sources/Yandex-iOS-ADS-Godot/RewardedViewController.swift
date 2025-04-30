@@ -75,6 +75,7 @@ extension RewardedViewController: RewardedAdDelegate {
         print(">>> YandexMobileAds \(#function)")
         print(">>> YandexMobileAds error: \(error)")
         DispatchQueue.main.async {
+            self.failLoadCallback?(error.localizedDescription)
             self.dismiss(animated: false)
         }
     }
@@ -94,8 +95,8 @@ extension RewardedViewController: RewardedAdDelegate {
     func rewardedAdDidDismiss(_ rewardedAd: RewardedAd) {
         print(">>> YandexMobileAds \(#function)")
         DispatchQueue.main.async {
-            self.dismiss(animated: false)
             self.closeCallback?()
+            self.dismiss(animated: false)
         }
     }
 }
